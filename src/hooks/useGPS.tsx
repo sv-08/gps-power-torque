@@ -28,13 +28,14 @@ export const useGPS = () => {
     setError(null);
     setReadings([]);
     
-    // Request high accuracy and update frequency
+    // Request high accuracy and faster update frequency
     const options = {
       enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 5000
+      maximumAge: 0,    // Don't use cached positions
+      timeout: 2000     // Reduced timeout for faster updates (from 5000ms to 2000ms)
     };
 
+    // Use a combination of watchPosition and additional polling for higher refresh rate
     const id = navigator.geolocation.watchPosition(
       (position) => {
         const newData: GPSData = {
@@ -62,10 +63,40 @@ export const useGPS = () => {
     setWatchId(id);
     setIsTracking(true);
     
+    // Additional polling interval for more frequent updates (every 100ms)
+    // This works alongside watchPosition to increase data points
+    const intervalId = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newData: GPSData = {
+            speed: position.coords.speed || 0,
+            timestamp: position.timestamp,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          // Only add if timestamp is different from last reading
+          setReadings(prev => {
+            if (prev.length === 0 || prev[prev.length-1].timestamp !== newData.timestamp) {
+              setGpsData(newData);
+              return [...prev, newData];
+            }
+            return prev;
+          });
+        },
+        // Silently fail on interval errors to not spam the user
+        () => {},
+        options
+      );
+    }, 100);
+    
+    // Return a cleanup function
     return () => {
       if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
       }
+      clearInterval(intervalId);
     };
   }, [toast]);
   
@@ -77,7 +108,7 @@ export const useGPS = () => {
     }
   }, [watchId]);
   
-  // Clear tracking on unmount
+  // Clean up all resources on unmount
   useEffect(() => {
     return () => {
       if (watchId !== null) {

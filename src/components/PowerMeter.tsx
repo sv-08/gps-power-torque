@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGPS } from '@/hooks/useGPS';
@@ -12,6 +11,36 @@ const PowerMeter: React.FC = () => {
   const { status, setStatus, processPowerData, resetCurrentTest } = useDyno();
   const { toast } = useToast();
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [sampleRate, setSampleRate] = useState<number>(0);
+  const lastUpdateRef = useRef<number>(Date.now());
+  const samplesCountRef = useRef<number[]>([]);
+  
+  // Calculate the current sample rate (readings per second)
+  useEffect(() => {
+    if (isTracking && readings.length > 0) {
+      const now = Date.now();
+      const elapsed = now - lastUpdateRef.current;
+      
+      // Update stats every 1 second
+      if (elapsed >= 1000) {
+        const samplesInLastSecond = readings.length - (samplesCountRef.current[samplesCountRef.current.length - 1] || 0);
+        samplesCountRef.current.push(readings.length);
+        
+        // Calculate samples per second
+        setSampleRate(samplesInLastSecond);
+        lastUpdateRef.current = now;
+        
+        // Keep only the last 5 measurements for memory efficiency
+        if (samplesCountRef.current.length > 5) {
+          samplesCountRef.current.shift();
+        }
+      }
+    } else if (!isTracking) {
+      // Reset on stop
+      samplesCountRef.current = [];
+      setSampleRate(0);
+    }
+  }, [readings, isTracking]);
   
   // Handle status changes based on GPS tracking
   useEffect(() => {
@@ -148,10 +177,17 @@ const PowerMeter: React.FC = () => {
       {(status === 'recording' || status === 'complete') && (
         <Card className="bg-racing-gray border-racing-gray shadow-lg">
           <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-muted-foreground text-sm">GPS Readings</p>
                 <p className="text-2xl font-semibold">{readings.length}</p>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm">Refresh Rate</p>
+                <p className="text-2xl font-semibold">
+                  {sampleRate} <span className="text-xs">Hz</span>
+                </p>
               </div>
               
               <div className="text-center">
