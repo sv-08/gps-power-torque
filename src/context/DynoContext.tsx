@@ -1,8 +1,6 @@
-
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Vehicle, TestRun, DynoStatus, PowerData } from '@/types/dyno';
 import { calculatePower, findPeaks, generateTestId } from '@/utils/powerCalculations';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 interface DynoContextProps {
   vehicle: Vehicle;
