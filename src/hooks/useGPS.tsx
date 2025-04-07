@@ -28,14 +28,15 @@ export const useGPS = () => {
     setError(null);
     setReadings([]);
     
-    // Request high accuracy and faster update frequency
+    // Maximum performance settings for GPS
     const options = {
       enableHighAccuracy: true,
-      maximumAge: 0,    // Don't use cached positions
-      timeout: 2000     // Reduced timeout for faster updates (from 5000ms to 2000ms)
+      maximumAge: 0,      // Don't use cached positions
+      timeout: 1000       // Further reduced timeout for faster updates (from 2000ms to 1000ms)
     };
 
-    // Use a combination of watchPosition and additional polling for higher refresh rate
+    // We'll rely more on the polling approach since it can be more consistent
+    // watchPosition as a backup for continuous monitoring
     const id = navigator.geolocation.watchPosition(
       (position) => {
         const newData: GPSData = {
@@ -63,8 +64,7 @@ export const useGPS = () => {
     setWatchId(id);
     setIsTracking(true);
     
-    // Additional polling interval for more frequent updates (every 100ms)
-    // This works alongside watchPosition to increase data points
+    // Aggressive polling at 10Hz (100ms) for maximum data points
     const intervalId = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -89,7 +89,7 @@ export const useGPS = () => {
         () => {},
         options
       );
-    }, 100);
+    }, 100); // Set to 100ms interval for 10Hz sampling
     
     // Return a cleanup function
     return () => {
