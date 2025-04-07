@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+App:https://gps-power-torque.lovable.app/
 
 ## Project info
 
